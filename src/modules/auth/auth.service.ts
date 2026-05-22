@@ -5,10 +5,9 @@ import jwt from "jsonwebtoken";
 const signup = async (payload: any) => {
   const { name, email, password, role = "contributor" } = payload;
 
-  const exist = await pool.query(
-    "SELECT id FROM users WHERE email=$1",
-    [email]
-  );
+  const exist = await pool.query("SELECT id FROM users WHERE email=$1", [
+    email,
+  ]);
 
   if (exist.rows.length > 0) {
     throw new Error("User already exists");
@@ -22,7 +21,7 @@ const signup = async (payload: any) => {
     VALUES($1,$2,$3,$4)
     RETURNING id,name,email,role,created_at,updated_at
     `,
-    [name, email, hashedPassword, role]
+    [name, email, hashedPassword, role],
   );
 
   return result.rows[0];
@@ -37,7 +36,7 @@ const login = async (payload: any) => {
     FROM users
     WHERE email=$1
     `,
-    [email]
+    [email],
   );
 
   if (result.rows.length === 0) {
@@ -52,15 +51,15 @@ const login = async (payload: any) => {
     throw new Error("Invalid password");
   }
 
-const token = jwt.sign(
-  {
-    id: user.id,
-    name: user.name,
-    role: user.role,
-  },
-  process.env.JWT_SECRET as string,
-  { expiresIn: "7d" }
-);
+  const token = jwt.sign(
+    {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: "7d" },
+  );
 
   return {
     token,
