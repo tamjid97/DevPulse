@@ -52,15 +52,15 @@ const login = async (payload: any) => {
     throw new Error("Invalid password");
   }
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      name: user.name,
-      role: user.role,
-    },
-    "SECRET_KEY",
-    { expiresIn: "7d" }
-  );
+const token = jwt.sign(
+  {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+  },
+  process.env.JWT_SECRET as string,
+  { expiresIn: "7d" }
+);
 
   return {
     token,

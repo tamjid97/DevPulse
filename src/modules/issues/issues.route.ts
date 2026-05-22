@@ -7,7 +7,7 @@ const router = Router();
 
 router.post("/", authMiddleware, issuesController.createIssue);
 
-router.get("/", authMiddleware, issuesController.getAllIssues);
+router.get("/", issuesController.getAllIssues);
 
 router.get("/:id", authMiddleware, issuesController.getIssueById);
 
