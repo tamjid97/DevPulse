@@ -5,9 +5,8 @@ import jwt from "jsonwebtoken";
 const signup = async (payload: any) => {
   const { name, email, password, role = "contributor" } = payload;
 
-  // check user exists
   const exist = await pool.query(
-    "SELECT * FROM users WHERE email=$1",
+    "SELECT id FROM users WHERE email=$1",
     [email]
   );
 
@@ -15,10 +14,8 @@ const signup = async (payload: any) => {
     throw new Error("User already exists");
   }
 
-  // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // insert user
   const result = await pool.query(
     `
     INSERT INTO users(name,email,password,role)
@@ -34,9 +31,12 @@ const signup = async (payload: any) => {
 const login = async (payload: any) => {
   const { email, password } = payload;
 
-  // find user
   const result = await pool.query(
-    "SELECT * FROM users WHERE email=$1",
+    `
+    SELECT id,name,email,password,role,created_at,updated_at
+    FROM users
+    WHERE email=$1
+    `,
     [email]
   );
 
@@ -46,14 +46,12 @@ const login = async (payload: any) => {
 
   const user = result.rows[0];
 
-  // compare password
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
     throw new Error("Invalid password");
   }
 
-  // create token
   const token = jwt.sign(
     {
       id: user.id,
@@ -71,6 +69,8 @@ const login = async (payload: any) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     },
   };
 };
