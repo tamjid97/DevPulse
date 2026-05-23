@@ -1,13 +1,19 @@
 
 
-  import { createRequire } from 'module';
+   import { createRequire } from 'module';
 
-  const require = createRequire(import.meta.url);
+   const require = createRequire(import.meta.url);
 
   
 
 // src/app.ts
 import express from "express";
+
+// src/modules/auth/auth.route.ts
+import { Router } from "express";
+
+// src/db/index.ts
+import { Pool } from "pg";
 
 // src/config/index.ts
 import dotenv from "dotenv";
@@ -22,7 +28,6 @@ var config = {
 var config_default = config;
 
 // src/db/index.ts
-import { Pool } from "pg";
 var pool = new Pool({
   connectionString: config_default.connection_string
 });
@@ -58,193 +63,6 @@ var initDB = async () => {
   }
 };
 initDB();
-
-// src/modules/user/user.rout.ts
-import { Router } from "express";
-
-// src/modules/user/user.service.ts
-var createUserIntoDB = async (payload) => {
-  const { name, email, password } = payload;
-  const result = await pool.query(
-    `
-     INSERT INTO users(name,email,password) VALUES($1,$2,$3) RETURNING *
-    `,
-    [name, email, password]
-  );
-  return result;
-};
-var getAllUsersFromDB = async () => {
-  const result = await pool.query(`
-      SELECT * FROM users  
-        `);
-  return result;
-};
-var getSingleUserFromDB = async (id) => {
-  const result = await pool.query(
-    `
-      SELECT * FROM users WHERE id=$1  
-        `,
-    [id]
-  );
-  return result;
-};
-var updateUserFromDB = async (payload, id) => {
-  const { name, password, age, is_active } = payload;
-  const result = await pool.query(
-    `
-    UPDATE users 
-    SET 
-    name=COALESCE($1,name),
-    password=COALESCE($2,password),
-    age=COALESCE($3,age),
-    is_active=COALESCE($4,is_active) 
-
-    WHERE id=$5 RETURNING *
-    `,
-    [name, password, age, is_active, id]
-  );
-  return result;
-};
-var deleteUserFromDB = async (id) => {
-  const result = await pool.query(
-    `
-    DELETE FROM users WHERE id=$1  
-      `,
-    [id]
-  );
-  return result;
-};
-var userService = {
-  createUserIntoDB,
-  getAllUsersFromDB,
-  getSingleUserFromDB,
-  updateUserFromDB,
-  deleteUserFromDB
-};
-
-// src/modules/user/user.controller.ts
-var createUser = async (req, res) => {
-  try {
-    const result = await userService.createUserIntoDB(req.body);
-    res.status(201).json({
-      success: true,
-      message: "User Created successfully!",
-      data: result.rows[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
-var getAllUsers = async (req, res) => {
-  try {
-    const result = await userService.getAllUsersFromDB();
-    res.status(200).json({
-      success: true,
-      message: "Users retrived successfully!",
-      data: result.rows
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
-var getSingleUser = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await userService.getSingleUserFromDB(id);
-    if (result.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: "User Not found!",
-        data: {}
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "User retrived successfully!",
-      data: result.rows[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
-var updateUser = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await userService.updateUserFromDB(req.body, id);
-    if (result.rows.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: "User Not found!"
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "User updated successfully!",
-      data: result.rows[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
-var deleteUser = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await userService.deleteUserFromDB(id);
-    console.log(result);
-    if (result.rowCount === 0) {
-      res.status(404).json({
-        success: false,
-        message: "User Not found!"
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "User deleted successfully!",
-      data: {}
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error
-    });
-  }
-};
-var userController = {
-  createUser,
-  getAllUsers,
-  getSingleUser,
-  updateUser,
-  deleteUser
-};
-
-// src/modules/user/user.rout.ts
-var router = Router();
-router.post("/", userController.createUser);
-router.get("/", userController.getAllUsers);
-router.get("/:id", userController.getSingleUser);
-router.put("/:id", userController.updateUser);
-router.delete("/:id", userController.deleteUser);
-var userRouter = router;
-
-// src/modules/auth/auth.route.ts
-import { Router as Router2 } from "express";
 
 // src/modules/auth/auth.service.ts
 import bcrypt from "bcrypt";
@@ -349,13 +167,13 @@ var authController = {
 };
 
 // src/modules/auth/auth.route.ts
-var router2 = Router2();
-router2.post("/signup", authController.signup);
-router2.post("/login", authController.login);
-var authRouter = router2;
+var router = Router();
+router.post("/signup", authController.signup);
+router.post("/login", authController.login);
+var authRouter = router;
 
 // src/modules/issues/issues.route.ts
-import { Router as Router3 } from "express";
+import { Router as Router2 } from "express";
 
 // src/modules/issues/issues.service.ts
 var createIssue = async (payload, user) => {
@@ -642,25 +460,27 @@ var requireRole = (roles) => {
 };
 
 // src/modules/issues/issues.route.ts
-var router3 = Router3();
-router3.post("/", authMiddleware, issuesController.createIssue);
-router3.get("/", issuesController.getAllIssues);
-router3.get("/:id", authMiddleware, issuesController.getIssueById);
-router3.patch("/:id", authMiddleware, issuesController.updateIssue);
-router3.delete(
+var router2 = Router2();
+router2.post("/", authMiddleware, issuesController.createIssue);
+router2.get("/", issuesController.getAllIssues);
+router2.get("/:id", authMiddleware, issuesController.getIssueById);
+router2.patch("/:id", authMiddleware, issuesController.updateIssue);
+router2.delete(
   "/:id",
   authMiddleware,
   requireRole(["maintainer"]),
   issuesController.deleteIssue
 );
-var issuesRouter = router3;
+var issuesRouter = router2;
 
 // src/app.ts
 var app = express();
 app.use(express.json());
 app.use(express.text());
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/users", userRouter);
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
 app.use("/api/auth", authRouter);
 app.use("/api/issues", issuesRouter);
 var app_default = app;

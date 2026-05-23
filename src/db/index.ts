@@ -2,7 +2,10 @@ import { Pool } from "pg";
 import config from "../config";
 
 export const pool = new Pool({
-  connectionString: config.connection_string,
+  connectionString: config.connectionString,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 export const initDB = async () => {
@@ -40,4 +43,5 @@ export const initDB = async () => {
     console.log(error);
   }
 };
+
 initDB();
