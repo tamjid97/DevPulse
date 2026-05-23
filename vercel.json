@@ -1,18 +1,19 @@
 {
   "version": 2,
-
   "builds": [
     {
       "src": "dist/server.js",
-
       "use": "@vercel/node"
     }
   ],
-
+  "env": {
+    "DATABASE_URL": "postgresql://neondb_owner:npg_VrJbfYo7X8vt@ep-quiet-wildflower-aqagva8h-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    "PORT": "5000",
+    "JWT_SECRET": "super_secret_key"
+  },
   "routes": [
     {
       "src": "/(.*)",
-
       "dest": "dist/server.js"
     }
   ]
