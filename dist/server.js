@@ -17,32 +17,35 @@ import { Pool } from "pg";
 
 // src/config/index.ts
 import dotenv from "dotenv";
-import path from "path";
-dotenv.config({
-  path: path.join(process.cwd(), ".env")
-});
+dotenv.config();
 var config = {
-  connection_string: process.env.connectionString,
-  port: process.env.PORT
+  connectionString: process.env.DATABASE_URL,
+  port: process.env.PORT,
+  jwt_secret: process.env.JWT_SECRET
 };
 var config_default = config;
 
 // src/db/index.ts
+var connectionString = config_default.connectionString || process.env.DATABASE_URL;
 var pool = new Pool({
-  connectionString: config_default.connection_string
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false
+    // Neon DB ক্লাউড কানেকশনের জন্য এটি বাধ্যতামূলক
+  }
 });
 var initDB = async () => {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role VARCHAR(20) DEFAULT 'contributor',
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-)
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role VARCHAR(20) DEFAULT 'contributor',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
     `);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS issues (
@@ -50,19 +53,18 @@ var initDB = async () => {
         title VARCHAR(150) NOT NULL,
         description TEXT NOT NULL,
         type VARCHAR(20) CHECK (type IN ('bug','feature_request')) NOT NULL,
-        status VARCHAR(20) DEFAULT 'open'
-          CHECK (status IN ('open','in_progress','resolved')),
+        status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved')),
         reporter_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
-      )
+      );
     `);
-    console.log("Database connected successfully!");
+    console.log("Database connected and tables initialized successfully!");
   } catch (error) {
-    console.log(error);
+    console.error("Database connection/initialization failed:", error);
+    throw error;
   }
 };
-initDB();
 
 // src/modules/auth/auth.service.ts
 import bcrypt from "bcrypt";
@@ -486,11 +488,17 @@ app.use("/api/issues", issuesRouter);
 var app_default = app;
 
 // src/server.ts
-var main = () => {
-  initDB();
-  app_default.listen(config_default.port, () => {
-    console.log(`Example app listening on port ${config_default.port}`);
-  });
+var main = async () => {
+  try {
+    await initDB();
+    const port = config_default.port || 5e3;
+    app_default.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  } catch (err) {
+    console.error("Server failed to start:", err);
+    process.exit(1);
+  }
 };
 main();
 //# sourceMappingURL=server.js.map
